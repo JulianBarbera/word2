@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import json
 
 RED = "\033[31m"
 GREEN = "\033[32m"
@@ -10,6 +11,7 @@ RESET = "\033[0m"
 
 verbose = False
 silent = False
+words = []
 
 
 def log(msg):
@@ -19,12 +21,12 @@ def log(msg):
 
 def warn(msg):
     if not silent and verbose:
-        print(f"{YELLOW}[WARN] {msg}{RESET}", file=sys.stderr)
+        print(f"{YELLOW}[WARN]{RESET} {msg}", file=sys.stderr)
 
 
 def error(msg):
     if not silent:
-        print(f"{RED}[ERROR] {msg}{RESET}", file=sys.stderr)
+        print(f"{RED}[ERROR]{RESET} {msg}", file=sys.stderr)
 
 
 def initArgs():
@@ -48,9 +50,20 @@ def initArgs():
         log("Verbosity turned on")
 
 
+def parse():
+    try:
+        with open("words.jsonl") as f:
+            for line in f:
+                obj = json.loads(line)
+                data.append((obj["word"], obj["score"], obj["frequency"]))
+    except FileNotFoundError:
+        error("words.jsonl not found")
+
+
 def main():
     initArgs()
     log("Welcome to word2")
+    parse()
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ def error(msg):
 
 
 def initArgs():
+    global verbose, silent
     parser = argparse.ArgumentParser(
         prog="word2",
         description="An insightful wordle solver",
@@ -43,19 +44,24 @@ def initArgs():
     )
     args = parser.parse_args()
     if args.verbose:
-        verbosity = 2
+        verbose = True
         log("Verbosity turned on")
     if args.silent:
-        verbosity = 0
-        log("Verbosity turned on")
+        silent = True
+        log("If you can read this, something has gone terribly wrong")
 
 
 def parse():
     try:
+        log("Parsing wordlist...")
         with open("words.jsonl") as f:
-            for line in f:
-                obj = json.loads(line)
-                data.append((obj["word"], obj["score"], obj["frequency"]))
+            for i, line in enumerate(f, start=1):
+                try:
+                    obj = json.loads(line)
+                    words.append((obj["word"], obj["score"], obj["frequency"]))
+                except Exception as e:
+                    warn(f"Skipping line {i}: {e}")
+        log(f"Parsed {len(words)} valid words")
     except FileNotFoundError:
         error("words.jsonl not found")
 

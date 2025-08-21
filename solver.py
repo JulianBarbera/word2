@@ -3,6 +3,7 @@
 import argparse
 import sys
 import json
+import math
 
 # ANSI colors
 RED = "\033[31m"
@@ -14,10 +15,12 @@ verbose = False
 silent = False
 data = []
 words = set()
+guessct = set()
+frequencies = set()
 
 
 def log(msg):
-    if not silent:
+    if verbose:
         print(f"[LOG] {msg}", file=sys.stdout)
 
 
@@ -48,15 +51,14 @@ def init_args():
     parser.add_argument(
         "-f",
         "--file",
-        default="words.jsonl",
+        default="data.jsonl",
         help="Word list file (default: words.jsonl)",
     )
     return parser.parse_args()
 
 
-def parse(path="words.jsonl"):
-    """Parse the dataset into tuples (word, score, frequency)."""
-    global data, words
+def parse(path="data.jsonl"):
+    global data, words, guessct, frequencies
     if data:
         return data, words
 
@@ -76,6 +78,8 @@ def parse(path="words.jsonl"):
                 except Exception as e:
                     warn(f"Skipping line {i}: {e}")
         words = {word for word, _, _ in data}
+        guessct = {gct for _, gct, _ in data}
+        frequencies = {frq for _, _, frq in data}
         log(f"Parsed {len(data)} valid words")
     except FileNotFoundError:
         error(f"{path} not found")
@@ -83,8 +87,64 @@ def parse(path="words.jsonl"):
     return data, words
 
 
+def printGuess(guess, secret):
+    if silent:
+        return
+    n = 0
+    for character in guess:
+        if character == secret[n]:
+            print(f"{GREEN}{character}{RESET}", end="")
+        elif character in secret:
+            print(f"{YELLOW}{character}{RESET}", end="")
+        else:
+            print(character, end="")
+        n += 1
+    print()
+
+
+def pare(guess, secret, data, negative, positive, confirmed):
+    log(f"Paring {guess}")
+    data = [w for w in data if not any(char in w[0] for char in negative)]
+    data = [w for w in data if all(char in w[0] for char in positive)]
+    data = [
+        w
+        for w in data
+        if all(c == " " or w[0][i] == c for i, c in enumerate(confirmed))
+    ]
+
+    log(len(data))
+    return data
+
+
+def agent(guess, secret, negative=[], positive=[], confirmed=[]):
+    negative = [c for c in guess if c not in secret]
+    positive = [c for c in guess if c in secret]
+    confirmed = "".join(c if c == secret[i] else " " for i, c in enumerate(guess))
+    return negative, positive, confirmed
+
+
+def sort(data):
+    return sorted(data, key=rank, reverse=True)
+
+
+def rank(e):
+    g = e[1]
+    f = e[2]
+    gmin = min(guessct)
+    gmax = max(guessct)
+    fmin = min(frequencies)
+    fmax = max(frequencies)
+    return 1000 * (
+        1 - ((g - gmin) / (gmax - gmin)) + math.sqrt((f - fmin) / (fmax - fmin))
+    )
+
+
+def check(guess, secret):
+    printGuess(guess, secret)
+    return guess == secret
+
+
 def guesses_to_solve(first, secret, path="words.jsonl"):
-    """Main solver routine."""
     first = first.upper()
     secret = secret.upper()
 
@@ -96,8 +156,32 @@ def guesses_to_solve(first, secret, path="words.jsonl"):
         error("Please use a secret from the dataset")
 
     log(f"First guess: {first}, Secret word: {secret}")
+    global data
 
-    return True
+    i = 1
+    data = sort(data)
+    negative, positive, confirmed = agent(first, secret)
+    data = sort(pare(first, secret, data, negative, positive, confirmed))
+    if check(first, secret):
+        return i
+
+    while True:
+        i += 1
+        guess = data[0][0]
+        if check(guess, secret):
+            break
+        negative, positive, confirmed = agent(
+            guess, secret, negative, positive, confirmed
+        )
+        data = sort(pare(guess, secret, data, negative, positive, confirmed))
+
+    return i
+
+
+def user(negative, positive):
+    neg = input("It's not...\n" + "".join(negative)).upper()
+    pos = input("It has...\n" + "".join(positive)).upper()
+    return neg, pos
 
 
 def main():
@@ -118,7 +202,7 @@ def main():
         log("If you can read this, something has gone terribly wrong")
 
     log("Welcome to word2")
-    guesses_to_solve(args.first, args.secret, args.file)
+    log(guesses_to_solve(args.first, args.secret, args.file))
 
 
 if __name__ == "__main__":

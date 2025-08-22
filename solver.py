@@ -4,6 +4,7 @@ import argparse
 import sys
 import json
 import math
+import readline
 
 # ANSI colors
 RED = "\033[31m"
@@ -40,8 +41,8 @@ def init_args():
         prog="word2",
         description="An insightful wordle solver",
     )
-    parser.add_argument("first")
-    parser.add_argument("secret")
+    parser.add_argument("--first")
+    parser.add_argument("--secret")
     parser.add_argument(
         "-v", "--verbose", help="Displays more messages and errors", action="store_true"
     )
@@ -52,7 +53,7 @@ def init_args():
         "-f",
         "--file",
         default="data.jsonl",
-        help="Word list file (default: words.jsonl)",
+        help="Word list file (default: data.jsonl)",
     )
     return parser.parse_args()
 
@@ -74,7 +75,7 @@ def parse(path="data.jsonl"):
                     if not (word and score is not None and freq is not None):
                         warn(f"Skipping line {i}: missing keys")
                         continue
-                    data.append((word, score, freq))
+                    data.append((word.upper(), score, freq))
                 except Exception as e:
                     warn(f"Skipping line {i}: {e}")
         words = {word for word, _, _ in data}
@@ -102,25 +103,48 @@ def printGuess(guess, secret):
     print()
 
 
-def pare(guess, secret, data, negative, positive, confirmed):
-    log(f"Paring {guess}")
-    data = [w for w in data if not any(char in w[0] for char in negative)]
-    data = [w for w in data if all(char in w[0] for char in positive)]
-    data = [
-        w
-        for w in data
-        if all(c == " " or w[0][i] == c for i, c in enumerate(confirmed))
-    ]
+def pare(data, negative, positive, confirmed, anti):
+    negative_set = set("".join(negative))
 
-    log(len(data))
-    return data
+    filtered = []
+    for word, score, freq in data:
+        if not set(positive).issubset(set(word)):
+            continue
+
+        if set(word).intersection(negative_set):
+            continue
+        bad = 0
+        for i, c in enumerate(word):
+            if c is not confirmed[i] and confirmed[i].isalpha():
+                bad = 1
+            log(c)
+            log(anti[i])
+            if c in anti[i]:
+                bad = 1
+        if bad:
+            continue
+        filtered.append((word, score, freq))
+
+    return filtered
 
 
-def agent(guess, secret, negative=[], positive=[], confirmed=[]):
-    negative = [c for c in guess if c not in secret]
-    positive = [c for c in guess if c in secret]
-    confirmed = "".join(c if c == secret[i] else " " for i, c in enumerate(guess))
-    return negative, positive, confirmed
+def agent(guess, secret, negative, positive, confirmed, anti):
+    new_negative = set()
+    new_positive = set()
+
+    for i, c in enumerate(guess):
+        if c == secret[i]:
+            confirmed[i] = c
+        elif c in secret:
+            new_positive.add(c)
+            anti[i] += c
+        else:
+            new_negative.add(c)
+
+    negative |= new_negative
+    positive |= new_positive
+
+    return negative, positive, confirmed, anti
 
 
 def sort(data):
@@ -135,7 +159,7 @@ def rank(e):
     fmin = min(frequencies)
     fmax = max(frequencies)
     return 1000 * (
-        1 - ((g - gmin) / (gmax - gmin)) + math.sqrt((f - fmin) / (fmax - fmin))
+        1 - ((g - gmin) / (gmax - gmin)) + 0.1 * ((f - fmin) / (fmax - fmin))
     )
 
 
@@ -144,7 +168,7 @@ def check(guess, secret):
     return guess == secret
 
 
-def guesses_to_solve(first, secret, path="words.jsonl"):
+def guesses_to_solve(first, secret, path="data.jsonl"):
     first = first.upper()
     secret = secret.upper()
 
@@ -160,8 +184,11 @@ def guesses_to_solve(first, secret, path="words.jsonl"):
 
     i = 1
     data = sort(data)
-    negative, positive, confirmed = agent(first, secret)
-    data = sort(pare(first, secret, data, negative, positive, confirmed))
+    negative, positive, confirmed, anti = set(), set(), [" "] * 5, [""] * 5
+    negative, positive, confirmed, anti = agent(
+        list(first), secret, negative, positive, confirmed, anti
+    )
+    data = pare(data, negative, positive, confirmed, anti)
     if check(first, secret):
         return i
 
@@ -170,28 +197,61 @@ def guesses_to_solve(first, secret, path="words.jsonl"):
         guess = data[0][0]
         if check(guess, secret):
             break
-        negative, positive, confirmed = agent(
-            guess, secret, negative, positive, confirmed
+        negative, positive, confirmed, anti = agent(
+            list(guess), secret, negative, positive, confirmed, anti
         )
-        data = sort(pare(guess, secret, data, negative, positive, confirmed))
+        data = pare(data, negative, positive, confirmed, anti)
 
     return i
 
 
-def user(negative, positive):
-    neg = input("It's not...\n" + "".join(negative)).upper()
-    pos = input("It has...\n" + "".join(positive)).upper()
-    return neg, pos
+def user(negative=[], positive=[], confirmed=[]):
+    negative.extend(input("It's not...\n" + "".join(negative)).upper())
+    positive.extend(input("It has...\n" + "".join(positive)).upper())
+    readline.set_startup_hook(lambda: readline.insert_text("".join(confirmed)))
+    log(f"Negative: {negative}")
+    log(f"Positive: {positive}")
+    log(f"Confirmed: {confirmed}")
+    try:
+        newConfirmed = input("Where?\n12345\n").upper()
+    finally:
+        readline.set_startup_hook()
+    if newConfirmed.strip() != "":
+        confirmed = list(newConfirmed)
+    return negative, positive, confirmed
+
+
+def solve(path="words.jsonl"):
+    parse(path)
+
+    global data
+
+    i = 1
+    data = sort(data)
+    negative, positive, confirmed = set(), set(), [" "] * 5
+    negative, positive, confirmed = user(list(negative), list(positive), confirmed)
+    data = pare(data, negative, positive, confirmed)
+
+    while True:
+        i += 1
+        guess = data[0][0]
+        data.pop(0)
+        print(guess)
+        negative, positive, confirmed = user(list(negative), list(positive), confirmed)
+        data = pare(data, negative, positive, confirmed)
+
+    return i
 
 
 def main():
     global verbose, silent
     args = init_args()
 
-    if len(args.first) != 5:
-        error("Opening word invalid")
-    if len(args.secret) != 5:
-        error("Secret word invalid")
+    if args.first or args.secret:
+        if args.first and len(args.first) != 5:
+            error("Opening word invalid")
+        if args.secret and len(args.secret) != 5:
+            error("Secret word invalid")
 
     verbose = args.verbose
     silent = args.silent
@@ -202,7 +262,10 @@ def main():
         log("If you can read this, something has gone terribly wrong")
 
     log("Welcome to word2")
-    log(guesses_to_solve(args.first, args.secret, args.file))
+    if args.first and args.secret:
+        log(guesses_to_solve(args.first, args.secret, args.file))
+    else:
+        solve(args.file)
 
 
 if __name__ == "__main__":

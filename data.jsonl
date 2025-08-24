@@ -1,4 +1,3 @@
-{"word": "ISSUE", "score": 3.58679706601467, "frequency": 254478181}
 {"word": "REPLY", "score": 3.3643031784841075, "frequency": 84857974}
 {"word": "DAILY", "score": 3.354523227383863, "frequency": 83444756}
 {"word": "ALONG", "score": 3.323529411764706, "frequency": 112965658}
@@ -25,7 +24,6 @@
 {"word": "BUYER", "score": 3.360294117647059, "frequency": 45080741}
 {"word": "CIVIL", "score": 3.6004901960784315, "frequency": 72603888}
 {"word": "WORTH", "score": 3.4534313725490198, "frequency": 61348302}
-{"word": "UNION", "score": 3.6862745098039214, "frequency": 40764005}
 {"word": "RIVER", "score": 3.5256723716381417, "frequency": 49495349}
 {"word": "SPEED", "score": 3.4596577017114916, "frequency": 48075237}
 {"word": "BIBLE", "score": 3.513447432762836, "frequency": 59901425}
@@ -440,7 +438,6 @@
 {"word": "FECAL", "score": 3.450980392156863, "frequency": 1035406}
 {"word": "BROOD", "score": 3.5745721271393642, "frequency": 1034523}
 {"word": "VOWEL", "score": 3.571078431372549, "frequency": 1033509}
-{"word": "LLAMA", "score": 3.7377450980392157, "frequency": 1033922}
 {"word": "MORON", "score": 3.5872235872235874, "frequency": 1032064}
 {"word": "MELEE", "score": 3.6862745098039214, "frequency": 1017416}
 {"word": "PENCE", "score": 3.6127450980392157, "frequency": 1016374}
@@ -536,7 +533,6 @@
 {"word": "CHASM", "score": 3.395121951219512, "frequency": 521625}
 {"word": "PRAWN", "score": 3.480392156862745, "frequency": 513599}
 {"word": "RIGOR", "score": 3.465686274509804, "frequency": 510828}
-{"word": "ROWDY", "score": 3.4705882352941178, "frequency": 512932}
 {"word": "TORUS", "score": 3.3447432762836184, "frequency": 510507}
 {"word": "GOURD", "score": 3.4425427872860634, "frequency": 509986}
 {"word": "GUSTO", "score": 3.3814180929095357, "frequency": 504455}
@@ -709,11 +705,9 @@
 {"word": "LOATH", "score": 3.430317848410758, "frequency": 151677}
 {"word": "CROUP", "score": 3.444987775061125, "frequency": 148396}
 {"word": "SCREE", "score": 3.5183374083129584, "frequency": 149713}
-{"word": "EXTOL", "score": 3.4963325183374083, "frequency": 149483}
 {"word": "ANNUL", "score": 3.550122249388753, "frequency": 148678}
 {"word": "RECUT", "score": 3.3161764705882355, "frequency": 146984}
 {"word": "OVINE", "score": 3.3970588235294117, "frequency": 146663}
-{"word": "RATTY", "score": 3.534313725490196, "frequency": 146490}
 {"word": "BLEAT", "score": 3.3186274509803924, "frequency": 145805}
 {"word": "PURER", "score": 3.4792176039119806, "frequency": 145370}
 {"word": "OVATE", "score": 3.482843137254902, "frequency": 144793}
